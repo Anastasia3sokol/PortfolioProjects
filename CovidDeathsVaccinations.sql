@@ -84,7 +84,7 @@ Select
 	dea.population, 
 	vac.new_vaccinations, 
 	SUM(Cast(vac.new_vaccinations as int)) OVER (Partition by dea.Location Order by dea.location, dea.Date) as RollingPeopleVaccinated,
-	(RollingPeopleVaccinated/population)*100
+	(RollingPeopleVaccinated/population)*100 -- Not going to work because RollingPeopleVaccinated column isn't recognised
 From CovidDeaths dea
 Join CovidVacinations vac
 	On dea.location = vac.location
@@ -94,6 +94,9 @@ order by 2,3;
 
 
 -- USE CTE
+/* CTE -A Common Table Expression, is a temporary named result set that you can reference within a SELECT, INSERT, UPDATE, or DELETE statement. 
+The CTE can also be used in a View.
+*/
 
 With PopvsVac (Continent, Location, Date, Population, New_Vaccinations, RollingPeopleVaccinated)
 as 
@@ -117,9 +120,10 @@ Select *, (RollingPeopleVaccinated/Population)*100
 From PopvsVac
 
 --TEMP TABLE
+-- T-SQL language syntax
 
 Drop Table if exists #PercentPopulationVaccinated
-Create Table #PercentPopulationVaccinated
+Create Table #PercentPopulationVaccinated -- In MySQL would be: CREATE TEMPORARY TABLE PercentPopulationVaccinated
 (
 Continent nvarchar(255),
 Location nvarchar(255),
@@ -166,4 +170,26 @@ Join CovidVacinations vac
 WHERE dea.continent is not null
 --order by 2,3
 
--- Make some more views!!
+
+-- 
+Create View MortalityCorrelation as
+SELECT 
+	dea.continent,
+	dea.location,
+	dea.date,
+	dea.total_cases,
+	dea.new_cases,
+	dea.total_deaths,
+	dea.new_deaths,
+	dea.population,
+	dea.population_density,
+	dea.median_age,
+	vac.total_vaccinations,
+	vac.new_vaccinations,
+	vac.life_expectancy
+FROM CovidDeaths dea
+Join CovidVacinations vac
+	On dea.location = vac.location
+	and dea.date = vac.date
+WHERE dea.continent is not null
+
