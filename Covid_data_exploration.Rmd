@@ -1,0 +1,136 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+#rm(list=ls(all=TRUE))
+
+```{r}
+#Load the data from the csv file to a data frame
+df <- read.csv('C:/Users/User/Desktop/SQL/Alex/My own version/June2023_CovidData.csv')
+
+#Convert the date column into a time stamp
+df$date <- as.POSIXct(df$date)
+
+```
+
+Need to color the table later to make it more readable
+https://cran.r-project.org/web/packages/colorDF/vignettes/colorDF.html
+```{r}
+# Compute summary statistics
+#summary_df <- summary(df)
+numeric_df <- df[, sapply(df, is.numeric)]
+
+summary_table <- sapply(numeric_df, function(x) {
+  c(Min = min(x, na.rm = TRUE),
+    `1st Qu` = quantile(x, 0.25, na.rm = TRUE),
+    Median = median(x, na.rm = TRUE),
+    Mean = mean(x, na.rm = TRUE),
+    `3rd Qu` = quantile(x, 0.75, na.rm = TRUE),
+    Max = max(x, na.rm = TRUE))
+})
+
+t(summary_table)
+
+```
+Compute the correlation matrix
+Subset the data frame to include only numeric columns and replace NAs with 0
+
+```{r}
+numeric_df <- df[, sapply(df, is.numeric)]
+numeric_df[is.na(numeric_df)] <- 0
+
+# Compute the correlation matrix
+corr <- cor(numeric_df)
+
+# Set upper triangle values to NA
+#corr[upper.tri(corr)] <- NA
+
+heatmap(corr, col = colorRampPalette(c("white", "orange", "red"))(100), symm = FALSE)
+```
+
+```{r}
+# Set upper triangle values to NA
+corr[lower.tri(corr)] <- NA
+
+# Create a triangular heatmap using upper triangle
+heatmap(corr, col = colorRampPalette(c("white", "orange", "red"))(100), symm = FALSE, 
+        Rowv = NA, Colv = NA, margins = c(10, 10))
+```
+
+```{r}
+# Select relevant columns
+selected_cols <- c(
+  "total_cases", "new_cases", "new_deaths", "total_tests",
+  "population_density", "median_age", "aged_65_older", "gdp_per_capita",
+  "cardiovasc_death_rate", "diabetes_prevalence", "life_expectancy"
+)
+
+# Subset the dataframe with selected columns
+subset_df <- numeric_df[names(numeric_df)]
+
+# Calculate correlation matrix
+cor_matrix <- cor(subset_df, use = "pairwise.complete.obs")
+
+# Sort the correlations with total_cases in descending order
+cor_with_total_cases <- cor_matrix[1, -1]
+
+# Print the results
+head(data.frame(sort(cor_with_total_cases, decreasing = TRUE)),10)
+
+#Need to rename later
+```
+```{r}
+# Install missing packages
+#install.packages("ggplot2")
+#install.packages("dplyr")
+#install.packages("maps")
+
+library(ggplot2)
+library(maps)
+
+# Subset the relevant columns from the df dataset
+world_map_data <- df[df$location != "World", c("location", "total_cases", "total_deaths")]
+
+# Merge with map data to get country borders
+world_map <- map_data("world")
+
+library(dplyr)
+
+# Set the sample size (e.g., 10%)
+sample_size <- 0.1
+
+# Subset a random sample of rows from world_map_data
+sample_data <- world_map_data %>%
+  sample_n(size = round(nrow(.) * sample_size))
+
+# Subset a random sample of rows from world_map
+sample_map <- world_map %>%
+  sample_n(size = round(nrow(.) * sample_size))
+
+# Merge the sample datasets
+merged_sample <- merge(sample_data, sample_map, by.x = "location", by.y = "region", all.x = TRUE)
+
+# Check the resulting merged data
+head(merged_sample)
+
+# Merge map data with COVID-19 data
+#merged_data <- merge(world_map_data, world_map, by.x = "location", by.y = "region", all.x = TRUE)
+
+# Calculate the color intensity based on total_cases and total_deaths
+merged_sample$color_intensity <- log10(merged_sample$total_cases + 1)
+
+
+# Plot the world map
+ggplot() +
+  geom_map(data = merged_sample, map = sample_map, aes(x = long, y = lat, map_id = location, fill = color_intensity), 
+           color = "grey", size = 0.2) +
+  scale_fill_gradient(low = "lightgreen", high = "red", na.value = "white", guide = "legend") +
+  theme_void() +
+  labs(fill = "COVID-19 Cases (Log Scale)") +
+  ggtitle("World COVID-19 Cases Map")
+
+```
+Tutorial with not ugly map: https://www.youtube.com/watch?v=AgWgPSZ7Gp0
