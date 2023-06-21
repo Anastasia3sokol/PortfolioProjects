@@ -92,7 +92,8 @@ library(ggplot2)
 library(maps)
 
 # Subset the relevant columns from the df dataset
-world_map_data <- df[df$location != "World", c("location", "total_cases", "total_deaths")]
+world_map_data <- df[!(df$location %in% c("World","Europe","Africa","European Union","Low income","Lower middle income","North America","South Africa","South America"))
+                     , c("location", "total_cases")]
 
 # Merge with map data to get country borders
 world_map <- map_data("world")
@@ -133,4 +134,42 @@ ggplot() +
   ggtitle("World COVID-19 Cases Map")
 
 ```
+
 Tutorial with not ugly map: https://www.youtube.com/watch?v=AgWgPSZ7Gp0
+
+
+
+```{r}
+library(ggplot2)              #needs to be done each r session
+library(tidyverse)            #needs to be done each r session
+
+mapdata <- map_data("world") ##ggplot2
+View(mapdata)
+names(sample_data) = c("region","total_cases")
+
+aggregated_data <- aggregate(total_cases ~ region, data = sample_data, FUN = max, na.rm = TRUE)
+
+# Rename the aggregated column
+colnames(aggregated_data)[2] <- "total_cases"
+
+#mapdata <- left_join(mapdata, EUvax, by="region")
+mapdata1 <- left_join(mapdata, aggregated_data, by = "region")
+#mapdata0 <- merge(mapdata, sample_data, by = "region", all = FALSE)
+
+mapdata2<-mapdata1 %>% filter(!is.na(mapdata1$total_cases))
+View(mapdata2)
+
+map1<-ggplot(mapdata2, aes( x = long, y = lat, group=group)) +
+  geom_polygon(aes(fill = total_cases), color = "black")
+map1
+
+map2 <- map1 + scale_fill_gradient(name = "% vaccinated", low = "yellow", high =  "red", na.value = "grey50")+
+  theme(axis.text.x = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks = element_blank(),
+        axis.title.y=element_blank(),
+        axis.title.x=element_blank(),
+        rect = element_blank())
+map2
+```
+
