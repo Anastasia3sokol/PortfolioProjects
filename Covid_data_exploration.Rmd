@@ -16,8 +16,7 @@ df$date <- as.POSIXct(df$date)
 
 ```
 
-Need to color the table later to make it more readable
-https://cran.r-project.org/web/packages/colorDF/vignettes/colorDF.html
+
 ```{r}
 # Compute summary statistics
 #summary_df <- summary(df)
@@ -33,7 +32,8 @@ summary_table <- sapply(numeric_df, function(x) {
 })
 
 t(summary_table)
-
+#Need to color the table later to make it more readable
+#https://cran.r-project.org/web/packages/colorDF/vignettes/colorDF.html
 ```
 Compute the correlation matrix
 Subset the data frame to include only numeric columns and replace NAs with 0
@@ -48,10 +48,8 @@ corr <- cor(numeric_df)
 # Set upper triangle values to NA
 #corr[upper.tri(corr)] <- NA
 
-heatmap(corr, col = colorRampPalette(c("white", "orange", "red"))(100), symm = FALSE)
-```
+#heatmap(corr, col = colorRampPalette(c("white", "orange", "red"))(100), symm = FALSE)
 
-```{r}
 # Set upper triangle values to NA
 corr[lower.tri(corr)] <- NA
 
@@ -59,6 +57,7 @@ corr[lower.tri(corr)] <- NA
 heatmap(corr, col = colorRampPalette(c("white", "orange", "red"))(100), symm = FALSE, 
         Rowv = NA, Colv = NA, margins = c(10, 10))
 ```
+
 
 ```{r}
 # Select relevant columns
@@ -90,6 +89,7 @@ head(data.frame(sort(cor_with_total_cases, decreasing = TRUE)),10)
 
 library(ggplot2)
 library(maps)
+library(dplyr)
 
 # Subset the relevant columns from the df dataset
 world_map_data <- df[!(df$location %in% c("World","Europe","Africa","European Union","Low income","Lower middle income","North America","South Africa","South America"))
@@ -98,7 +98,6 @@ world_map_data <- df[!(df$location %in% c("World","Europe","Africa","European Un
 # Merge with map data to get country borders
 world_map <- map_data("world")
 
-library(dplyr)
 
 # Set the sample size (e.g., 10%)
 sample_size <- 0.1
@@ -163,7 +162,7 @@ map1<-ggplot(mapdata2, aes( x = long, y = lat, group=group)) +
   geom_polygon(aes(fill = total_cases), color = "black")
 map1
 
-map2 <- map1 + scale_fill_gradient(name = "% vaccinated", low = "yellow", high =  "red", na.value = "grey50")+
+map2 <- map1 + scale_fill_gradient(name = "cases", low = "yellow", high =  "red", na.value = "grey50")+
   theme(axis.text.x = element_blank(),
         axis.text.y = element_blank(),
         axis.ticks = element_blank(),
@@ -172,4 +171,52 @@ map2 <- map1 + scale_fill_gradient(name = "% vaccinated", low = "yellow", high =
         rect = element_blank())
 map2
 ```
+Conclusions for the world part:...
+
+###Continents
+```{r}
+library(dplyr)
+library(ggplot2)
+
+Avg_by_continent <- summarise(group_by(df, continent), 
+                              total_cases = mean(total_cases, na.rm = TRUE), 
+                              total_deaths = mean(total_deaths, na.rm = TRUE),
+                              people_vaccinated = mean(people_vaccinated, na.rm = TRUE))
+
+Avg_by_continent <- Avg_by_continent[order(Avg_by_continent$total_cases, decreasing = TRUE), ]
+Avg_by_continent = Avg_by_continent[Avg_by_continent$continent != "",]
+# Barplot
+barplot(Avg_by_continent$total_cases, names.arg = Avg_by_continent$continent, 
+        xlab = "Average Total Cases", ylab = "", 
+        main = "Average Total Cases by Continent",
+        horiz = TRUE, las = 1,, cex.names = 0.8)
+
+barplot(Avg_by_continent$total_deaths, names.arg = Avg_by_continent$continent, 
+        xlab = "Average Total Deaths", ylab = "", 
+        main = "Average Total Deaths by Continent",
+        horiz = TRUE, las = 1,, cex.names = 0.8)
+
+barplot(Avg_by_continent$people_vaccinated, names.arg = Avg_by_continent$continent, 
+        xlab = "Vaccinations", ylab = "", 
+        main = "Vaccinations",
+        horiz = TRUE, las = 1,, cex.names = 0.8)
+
+
+
+```
+
+```{r}
+continents = c("Asia","Europe","Africa","Oceania","North America","South America")
+# Filter the data for the desired continents
+filtered_data <- df[df$location %in% continents, c("location", "total_cases")]
+filtered_data1 <- df[df$continent %in% continents, c("location", "total_cases")]
+
+df$continent %in% continents
+df$continent %in% continents
+
+```
+
+
+
+###Countries
 
